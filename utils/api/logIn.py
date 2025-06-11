@@ -1,5 +1,5 @@
 import json
-
+from utils.api.getExamSchedule import GetExamSchedule
 from utils.api.getClassSchedule import GetClassSchedule
 from utils.api.getCookie import GetCookie
 from utils.log_util import logger
@@ -97,6 +97,9 @@ if __name__ == '__main__':
     elif mode == 3:
         session = LogIn().login(None,None,3)
         # GetScore().get_score_level_exam(session=session)
-        GetClassSchedule().get_class_schedule(session)
+        # GetClassSchedule().get_class_schedule(session)
+        # GetExamSchedule().get_exam_schedule(session)
+        GetClassSchedule().get_all_class_schedule(session)
+        # GetClassSchedule().get_all_class_schedule(session,'00001','00001','00001')
 
 

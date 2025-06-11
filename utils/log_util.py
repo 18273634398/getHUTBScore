@@ -11,7 +11,7 @@ if not os.path.isdir(log_dir_path):
     os.mkdir(log_dir_path)
 # 创建⽇志记录器，指明⽇志保存路径,每个⽇志的⼤⼩，保存⽇志的上限
 file_log_handler = RotatingFileHandler(os.sep.join([log_dir_path, 'log.txt']),
-                                       maxBytes=1024 * 1024, backupCount=10 , encoding="utf-8")
+                                       maxBytes=1024 * 1024 * 1024, backupCount=10 , encoding="utf-8")
 # 设置⽇志的格式
 date_string = '%Y-%m-%d %H:%M:%S'
 formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] [%(filename)s]/[line: %(lineno)d]/[%(funcName)s] %(message)s ', date_string)
