@@ -163,32 +163,33 @@ class GetClassSchedule(BaseAPI):
         }
         # 发送POST请求获取页面内容
         response = session.post(url,data=payload)
-        logger.info("【所有课程表数据】")
         
         # 使用整合的解析函数
         all_schedule_data = self._parse_course_schedule(response.text)
         
         # 打印统计信息
         total_courses = 0
-        for building in all_schedule_data:
-            for classroom in all_schedule_data[building]:
-                for day in range(7):
-                    for period in range(6):
-                        if all_schedule_data[building][classroom][day][period] is not None:
-                            total_courses += 1
+        # The structure of all_schedule_data is now {'教室完整名': [[课程信息_周一], ..., [课程信息_周日]]}
+        for classroom_key in all_schedule_data:
+            for day_schedule in all_schedule_data[classroom_key]: # day_schedule is a list of courses for a day
+                for course_info in day_schedule: # course_info is a dict or None
+                    if course_info is not None:
+                        total_courses += 1
         
-        logger.info(f"共解析到 {len(all_schedule_data)} 个教学楼，{total_courses} 门课程")
+        logger.info(f"共解析到 {len(all_schedule_data)} 个教室，{total_courses} 门课程")
         
         # 打印详细课程信息
-        for building in all_schedule_data:
-            for classroom in all_schedule_data[building]:
-                for day in range(7):
-                    for period in range(6):
-                        course = all_schedule_data[building][classroom][day][period]
-                        if course:
-                            weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日']
-                            periods = ['0102节', '0304节', '0506节', '0708节', '0910节', '1112节']
-                            logger.info(f"课程：{course.get('课程名', 'N/A')} | 教师：{course.get('教师', 'N/A')} | 教室：{building}{classroom} | 时间：{weekdays[day]} {periods[period]} | 班级：{course.get('上课班级', 'N/A')}")
+        # Assuming days_count = 7 and sessions_count_per_day = 6 are defined or known in this scope
+        # For robustness, let's use fixed numbers or get them from the structure if possible
+        days_count = 7
+        sessions_count_per_day = 6 
+        for classroom_full_name, daily_schedules in all_schedule_data.items():
+            for day_index, day_schedule in enumerate(daily_schedules):
+                for period_index, course in enumerate(day_schedule):
+                    if course:
+                        weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日']
+                        periods = ['0102节', '0304节', '0506节', '0708节', '0910节', '1112节']
+                        logger.info(f"课程：{course.get('课程名', 'N/A')} | 教师：{course.get('教师', 'N/A')} | 教室：{classroom_full_name} | 时间：{weekdays[day_index]} {periods[period_index]} | 班级：{course.get('上课班级', 'N/A')}")
         
         return all_schedule_data
     
@@ -200,7 +201,7 @@ class GetClassSchedule(BaseAPI):
             html_content (str): 包含课程表表格的HTML字符串。
 
         Returns:
-            dict: 按照 {'教学楼': {'教室': [[课程信息_周一], [课程信息_周二], ..., [课程信息_周日]]}} 格式的字典。
+            dict: 按照 {'教室完整名称': [[课程信息_周一], [课程信息_周二], ..., [课程信息_周日]]}} 格式的字典。
                   每个 [课程信息_某天] 是一个列表，包含当天所有节次的课程，
                   节次索引 0 对应 "0102"，1 对应 "0304" 等。
                   课程信息是一个字典: {"课程名": "...", "教师": "...", "上课班级": "..."}
@@ -225,29 +226,15 @@ class GetClassSchedule(BaseAPI):
             if not cells:
                 continue
 
-            # 第一个单元格是教室信息
+            # 第一个单元格是教室信息 (作为字典的键)
             classroom_full_name = cells[0].get_text(strip=True)
             if not classroom_full_name:
                 continue
 
-            # 解析教学楼和教室
-            # 假设教学楼名称以 "楼" 结尾
-            parts = classroom_full_name.split('楼', 1)
-            if len(parts) == 2:
-                building_name = parts[0] + '楼'
-                classroom_name = parts[1]
-            else: # 如果没有 "楼" 字，或者格式不符，可以将整个作为教室名，教学楼设为未知
-                building_name = "未知教学楼"
-                classroom_name = classroom_full_name
-
-            # 为新的教学楼初始化
-            if building_name not in schedule_data:
-                schedule_data[building_name] = {}
-
             # 为新的教室初始化，每天的课程列表，默认为None
-            # 结构: schedule_data[building_name][classroom_name] = [ [None, None, ... 6 times for Mon], [None, ... for Tue], ... ]
-            if classroom_name not in schedule_data[building_name]:
-                schedule_data[building_name][classroom_name] = [[None] * sessions_count_per_day for _ in range(days_count)]
+            # 结构: schedule_data[classroom_full_name] = [ [None, None, ... 6 times for Mon], [None, ... for Tue], ... ]
+            if classroom_full_name not in schedule_data:
+                schedule_data[classroom_full_name] = [[None] * sessions_count_per_day for _ in range(days_count)]
 
             # 后面的单元格是课程信息，每6个单元格对应一天
             course_cells = cells[1:]
@@ -266,47 +253,36 @@ class GetClassSchedule(BaseAPI):
 
                     if len(content_parts) >= 3:
                         course_name = content_parts[0]
-                        # 教师信息可能包含姓名和周次，周次可能在下一行，也可能与姓名在同一行但由换行符分隔
-                        # 简单合并第二行和第三行（如果它们看起来像教师和周次）
-                        # 示例: "谭利娜\n(1-16周)" 已经在 content_parts[1] 中了
-                        # 但有时原始HTML <br>可能在教师和周次之间，导致它们是 content_parts[1] 和 content_parts[2]
-                        # 我们需要更智能地组合
-
                         teacher_info = content_parts[1]
                         class_info_start_index = 2
 
-                        # 检查第二部分是否是周次信息 (如 "(1-16周)")
-                        # 如果不是，并且有更多部分，则尝试将第二和第三部分合并为教师信息
                         if not content_parts[1].startswith('(') and len(content_parts) > 2 and content_parts[2].startswith('('):
-                            teacher_info = f"{content_parts[1]} {content_parts[2]}" # 组合 教师姓名 和 (周次)
+                            teacher_info = f"{content_parts[1]} {content_parts[2]}"
                             class_info_start_index = 3
 
-                        # 剩余的部分是上课班级，可能有多行，用逗号连接
                         class_info_list = content_parts[class_info_start_index:]
                         class_info_str = ", ".join(filter(None, class_info_list))
 
-
                         course_details = {
                             "课程名": course_name,
-                            "教师": teacher_info, # 这已经包含了姓名和周次
+                            "教师": teacher_info,
                             "上课班级": class_info_str
                         }
-                        schedule_data[building_name][classroom_name][day_index][session_index] = course_details
-                    elif len(content_parts) == 2: # 可能只有课程名和教师（无班级）或者教师和班级（无课程名）等不完整情况
-                        # 假设是课程名和教师
+                        schedule_data[classroom_full_name][day_index][session_index] = course_details
+                    elif len(content_parts) == 2:
                         course_details = {
                             "课程名": content_parts[0],
                             "教师": content_parts[1],
                             "上课班级": "未知班级"
                         }
-                        schedule_data[building_name][classroom_name][day_index][session_index] = course_details
-                    elif len(content_parts) == 1: # 只有课程名
+                        schedule_data[classroom_full_name][day_index][session_index] = course_details
+                    elif len(content_parts) == 1:
                         course_details = {
                             "课程名": content_parts[0],
                             "教师": "未知教师",
                             "上课班级": "未知班级"
                         }
-                        schedule_data[building_name][classroom_name][day_index][session_index] = course_details
+                        schedule_data[classroom_full_name][day_index][session_index] = course_details
 
                 # else: 单元格为空或只有  ，保持为 None (已初始化)
 
