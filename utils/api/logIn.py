@@ -9,12 +9,15 @@ from utils.api.getPhoneCode import GetPhoneCode
 import requests
 
 class LogIn(BaseAPI):
+    def __init__(self):
+        super().__init__() # 调用父类的 __init__ 方法
+
     def login(self,username,psw_or_code,mode):
         # 通过手机验证码登录
         if mode == 1:
             # 验证验证码是否正确 正确后服务器将返回账号和临时的密码
             req ={
-                    "url":"https://cas.hutb.edu.cn/lyuapServer/sms/validateCode",
+                    "url":f"{self.author_base_url}/lyuapServer/sms/validateCode",
                     "method":"POST",
                     "json":{
                         "code":f"{psw_or_code}",
@@ -31,7 +34,7 @@ class LogIn(BaseAPI):
                 payload = {
                     'username': username,
                     'password': psw_or_code,
-                    'service': 'http://jwgl.hutb.edu.cn/',
+                    'service': f'{self.base_url}/', # 使用 self.base_url
                     'loginType': 2
                 }
                 url = 'https://cas.hutb.edu.cn/lyuapServer/v1/tickets'
@@ -46,7 +49,7 @@ class LogIn(BaseAPI):
 
                 # 第二步：访问教务网获取cookie
                 extraURL = response.json()["ticket"]
-                target_url = f'http://jwgl.hutb.edu.cn/?ticket={extraURL}'
+                target_url = f'{self.base_url}/?ticket={extraURL}' # 使用 self.base_url
                 session.get(target_url, allow_redirects=True)
                 logger.info("【进入教务网】")
 
@@ -57,7 +60,12 @@ class LogIn(BaseAPI):
                         target_cookies[cookie.name] = cookie.value
                 logger.info("【保存获取到的Cookie】")
                 # 保存cookie到文件
-                with open('cookies.json', 'w', encoding='utf-8') as f:
+                import os
+                # 获取当前文件的绝对路径
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                # 构建 cookies.json 的绝对路径
+                cookies_path = os.path.join(current_dir, '..', '..', 'doc', 'cookies.json')
+                with open(cookies_path, 'w', encoding='utf-8') as f:
                     json.dump(target_cookies, f, indent=2, ensure_ascii=False)
                 return session
             else:
@@ -69,6 +77,7 @@ class LogIn(BaseAPI):
         # 通过存储的cookie登录
         elif mode == 3:
             cookies = GetCookie().get_cookie()
+            print("获取到的cookie：",cookies)
             session = requests.Session()
             session.cookies.update(cookies)
             logger.info("【使用cookie登录】",cookies)
@@ -81,25 +90,5 @@ class LogIn(BaseAPI):
 
 
 
-if __name__ == '__main__':
-    username = input("请输入手机：")
-    mode = int(input("请输入登录模式：1-手机验证码登录，2-密码登录，3-cookie登录："))
-    if mode == 1:
-        res = GetPhoneCode().get_phone_code(username)
-        if res:
-            psw_or_code = input("请输入验证码：")
-            session = LogIn().login(username,psw_or_code,mode)
-            GetScore().get_score_level_exam(session)
-        else:
-            logger.info(res)
-    elif mode == 2:
-        pass
-    elif mode == 3:
-        session = LogIn().login(None,None,3)
-        # GetScore().get_score_level_exam(session=session)
-        # GetClassSchedule().get_class_schedule(session)
-        # GetExamSchedule().get_exam_schedule(session)
-        GetClassSchedule().get_all_class_schedule(session)
-        # GetClassSchedule().get_all_class_schedule(session,'00001','00001','00001')
 
 

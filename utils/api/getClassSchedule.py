@@ -3,17 +3,20 @@ from utils.log_util import logger
 from utils.api.base_api import BaseAPI
 
 class GetClassSchedule(BaseAPI):
-    def get_class_schedule(self, session):
+    def __init__(self,session):
+        super().__init__() # 调用父类的 __init__ 方法
+        self.session = session
+
+    def get_class_schedule(self):
         """
         获取课程表信息
-        :param session: 会话对象
         :return: 课程表数据列表
         """
-        url = "http://jwgl.hutb.edu.cn/jsxsd/xskb/xskb_list.do"
+        url = f"{self.base_url}/jsxsd/xskb/xskb_list.do" # 使用 self.base_url
 
         
         # 发送GET请求获取页面内容
-        response = session.get(url)
+        response = self.session.get(url)
         # 使用BeautifulSoup解析页面内容
         soup = BeautifulSoup(response.text, 'html.parser')
         
@@ -147,22 +150,21 @@ class GetClassSchedule(BaseAPI):
         return course_info if course_info.get('课程名') else None
 
     
-    def get_all_class_schedule(self, session,skyx=None,xqid=None,jzwid=None,xnxqh='2024-2025-2'):
+    def get_all_class_schedule(self, skyx=None,xqid=None,jzwid=None,xnxqh='2024-2025-2'):
         """
         获取所有课程表信息
-        :param session: 会话对象
         :return: 按照['教学楼']['教室'][星期][节次]格式的包含所有课程表数据的数组
         """
         logger.info("【获取所有课程表数据】")
-        url = "http://jwgl.hutb.edu.cn/jsxsd/kbcx/kbxx_classroom_ifr"
+        url = f"{self.base_url}/jsxsd/kbcx/kbxx_classroom_ifr" # 使用 self.base_url
         payload={
             'xnxqh':xnxqh,
-            'skyx':skyx, # 学院ID
-            'xqid':xqid, # 校区ID
-            'jzwid':jzwid #教学楼ID 
+            'skyx':skyx,  # 学院ID
+            'xqid':xqid,  # 校区ID 南校区01 北校区02
+            'jzwid':jzwid  # 教学楼ID
         }
         # 发送POST请求获取页面内容
-        response = session.post(url,data=payload)
+        response = self.session.post(url,data=payload)
         
         # 使用整合的解析函数
         all_schedule_data = self._parse_course_schedule(response.text)

@@ -6,7 +6,12 @@ class GetCookie:
     def get_cookie(self):
         try:
             # 从本地文件读取cookies
-            with open('cookies.json', 'r') as f:
+            import os
+            # 获取当前文件的绝对路径
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            # 构建 cookies.json 的绝对路径
+            cookies_path = os.path.join(current_dir, '..', '..', 'doc', 'cookies.json')
+            with open(cookies_path, 'r') as f:
                 cookies = json.load(f)
             # 返回cookies
             return cookies

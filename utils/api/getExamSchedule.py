@@ -3,22 +3,26 @@ from utils.log_util import logger
 from utils.api.base_api import BaseAPI
 
 class GetExamSchedule(BaseAPI):
+    def __init__(self,session):
+        super().__init__() # 调用父类的 __init__ 方法
+        self.session = session
+
     # 获取考试安排信息
     # params:
     #     xnxqid: 学年学期id，默认为2024-2025-2
-    def get_exam_schedule(self, session,xnxqid="2024-2025-2"):
+    def get_exam_schedule(self,xnxqid="2024-2025-2"):
         """
         获取考试安排信息
         :param session: 会话对象
         :return: 考试安排数据列表
         """
-        url = "http://jwgl.hutb.edu.cn/jsxsd/xsks/xsksap_list"
+        url = f"{self.base_url}/jsxsd/xsks/xsksap_list" # 使用 self.base_url
         
         # 发送POST请求获取页面内容
         payload={
             "xnxqid":f"{xnxqid}"
         }
-        response = session.post(url,data=payload)
+        response = self.session.post(url,data=payload)
         
         # 使用BeautifulSoup解析页面内容
         soup = BeautifulSoup(response.text, 'html.parser')

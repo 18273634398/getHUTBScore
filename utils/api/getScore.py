@@ -3,17 +3,21 @@ from utils.log_util import logger
 from utils.api.base_api import BaseAPI
 
 class GetScore(BaseAPI):
+    def __init__(self,session):
+        super().__init__() # 调用父类的 __init__ 方法
+        self.session = session
+
     # 获取期末成绩
-    def get_score_final_exam(self,session,sj="2024-2025-2"):
+    def get_score_final_exam(self,sj="2024-2025-2"):
         # 进入成绩查询页面
-        url = 'http://jwgl.hutb.edu.cn/jsxsd/kscj/cjcx_list'
+        url = f'{self.base_url}/jsxsd/kscj/cjcx_list' # 使用 self.base_url
         payload = {
             'kksj': sj,
             'kcxz': None,
             'kcmc': None,
             'xsfs': 'all'
         }
-        response = session.get(url,data=payload)
+        response = self.session.get(url,data=payload)
         soup = BeautifulSoup(response.text, 'html.parser')
 
         # 查找包含成绩数据的表格
@@ -50,9 +54,9 @@ class GetScore(BaseAPI):
         return grades
 
     # 获取等级考试成绩
-    def get_score_level_exam(self,session):
-        url = "http://jwgl.hutb.edu.cn/jsxsd/kscj/djkscj_list"
-        response = session.get(url)
+    def get_score_level_exam(self):
+        url = f"{self.base_url}/jsxsd/kscj/djkscj_list" # 使用 self.base_url
+        response = self.session.get(url)
         soup = BeautifulSoup(response.text, 'html.parser')
         
         # 查找包含等级考试成绩数据的表格
