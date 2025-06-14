@@ -13,19 +13,26 @@ if mode == 1:
     if res:
         psw_or_code = input("请输入验证码：")
         session = LogIn().login(username, psw_or_code, mode)
-        f.get_functions()
-        function_id = input("请输入功能编号：")
-        f.function(function_id, session)
-
+        if session:
+            f.get_functions()
+            function_id = input("请输入功能编号：")
+            f.function(function_id, session)
     else:
         logger.info(res)
 elif mode == 2:
-    print("暂不支持密码登录")
+    username = input("请输入学号：")
+    psw = input("请输入密码：")
+    session = LogIn().login(username, psw, mode)
+    if session:
+        f.get_functions()
+        function_id = input("请输入功能编号：")
+        f.function(function_id, session)
 elif mode == 3:
     session = LogIn().login(None, None, 3)
-    f.get_functions()
-    function_id = input("请输入功能编号：")
-    Function().function(function_id, session)
+    if session:
+        f.get_functions()
+        function_id = input("请输入功能编号：")
+        f.function(function_id, session)
 elif mode == 4:
     true_name = input("请输入真实姓名：")
     id_card = input("请输入身份证号：")
