@@ -144,8 +144,13 @@ class LogIn(BaseAPI):
                 
             session = requests.Session()
             session.cookies.update(cookies)
-            logger.info("【使用cookie登录成功】")
-            return session
+            if Cookie().vertify_cookie(session):
+                logger.info("【使用cookie登录成功】")
+                return session
+            else:
+                logger.info("【使用cookie登录失败】cookie已过期")
+                Cookie().clear_cookie()
+                return None
         except Exception as e:
             logger.error(f"【使用cookie登录失败】{e}")
             return None
@@ -184,7 +189,6 @@ class LogIn(BaseAPI):
         ticket = response.json()["ticket"]
         target_url = f'{self.base_url}/?ticket={ticket}'
         session.get(target_url, allow_redirects=True)
-        logger.info("【进入教务网】")
         
         # 保存cookie
         Cookie().save_cookie(session)
