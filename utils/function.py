@@ -3,6 +3,7 @@ from utils.api.getScore import GetScore
 from utils.api.getClassSchedule import GetClassSchedule
 from utils.api.getExamSchedule import GetExamSchedule
 from utils.api.autoJudge import AutoJudge
+from utils.api.getCredits import GetCredits
 class Function:
     function_list = [
         "1. 查询期末成绩",
@@ -11,7 +12,9 @@ class Function:
         "4. 查询所有教室上课信息",
         "5. 查询考试安排",
         "6. 自动评教",
-        "7. 退出"
+        "7. 查询素拓学分",
+        "8. 查询课程学分",
+        "9. 退出"
     ]
     def get_functions(self):
         logger.info("""功能菜单:""")
@@ -38,6 +41,10 @@ class Function:
                 GetExamSchedule(session).get_exam_schedule()
             elif function_id == 6:
                 AutoJudge(session).get_judge_status()
+            elif function_id == 7:
+                GetCredits(session).get_sutuo_credits()
+            elif function_id == 8:
+                GetCredits(session).get_study_credits()
             elif function_id == self.function_list.__len__():
                 logger.info("欢迎下次使用！")
                 return None
